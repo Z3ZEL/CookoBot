@@ -7,8 +7,9 @@ from collections import deque
 
 # Constantes du jeu
 PADDING = 25
-TILE_SIZE = 25
-MAP_SIZE = 40
+TILE_SIZE = 50
+OBJ_SIZE = TILE_SIZE - 10
+MAP_SIZE = 20
 BUTTON_HEIGHT = 50
 BUTTON_WIDTH = 100
 MENU_WIDTH = BUTTON_WIDTH * 2 + PADDING
@@ -56,6 +57,15 @@ class MiniJeuArcade(arcade.Window):
         y_start = random.randint(0, MAP_SIZE - 1)
         self.player = {'x': x_start, 'y': y_start}  # Position initiale du personnage
 
+        # Chargement des textures
+        self.player_texture = arcade.load_texture("images/robot.png")
+        self.fruit_textures = {
+            'banane': arcade.load_texture("images/banane.png"),
+            'pomme': arcade.load_texture("images/pomme.png"),
+            'fraise': arcade.load_texture("images/poire.png")
+        }
+
+
         # Placement aléatoire des objets sur la carte
         for _ in range(20):  # Exemple : 20 fruits aléatoires
             x = random.randint(0, MAP_SIZE - 1)
@@ -66,24 +76,27 @@ class MiniJeuArcade(arcade.Window):
     def on_draw(self):
         """Rendu de l'écran."""
         arcade.start_render()
-        # Dessiner les objets sur la carte
-        for (x, y), fruit in self.items_on_map.items():
-            position_x = x * TILE_SIZE + TILE_SIZE // 2 + PADDING
-            position_y = y * TILE_SIZE + TILE_SIZE // 2 + PADDING
-            color = self.fruits_colors[fruit]
-            arcade.draw_circle_filled(position_x, position_y, TILE_SIZE // 4, color)
-
-        # Dessiner le personnage
-        arcade.draw_rectangle_filled(self.player['x'] * TILE_SIZE + TILE_SIZE // 2 + PADDING,
-                                     self.player['y'] * TILE_SIZE + TILE_SIZE // 2 + PADDING,
-                                     TILE_SIZE, TILE_SIZE, arcade.color.BLUE)
 
         # Dessiner le chemin restant en orange
         if self.path and self.path_index < len(self.path):
             for step in self.path[self.path_index:]:
                 position_x = step[0] * TILE_SIZE + TILE_SIZE // 2 + PADDING
                 position_y = step[1] * TILE_SIZE + TILE_SIZE // 2 + PADDING
-                arcade.draw_rectangle_filled(position_x, position_y, TILE_SIZE, TILE_SIZE, arcade.color.ORANGE)
+                arcade.draw_rectangle_filled(position_x, position_y, TILE_SIZE, TILE_SIZE, arcade.color.LIGHT_GRAY)
+
+        # Dessiner les objets sur la carte
+        for (x, y), fruit in self.items_on_map.items():
+            position_x = x * TILE_SIZE + TILE_SIZE // 2 + PADDING
+            position_y = y * TILE_SIZE + TILE_SIZE // 2 + PADDING
+            arcade.draw_texture_rectangle(position_x, position_y, OBJ_SIZE, OBJ_SIZE, self.fruit_textures[fruit])
+
+        # Dessiner le personnage
+        arcade.draw_texture_rectangle(
+            self.player['x'] * TILE_SIZE + TILE_SIZE // 2 + PADDING,
+            self.player['y'] * TILE_SIZE + TILE_SIZE // 2 + PADDING,
+            OBJ_SIZE, OBJ_SIZE, self.player_texture
+        )
+
 
         # Dessiner la grille
         for row in range(MAP_SIZE):
@@ -93,9 +106,10 @@ class MiniJeuArcade(arcade.Window):
                 arcade.draw_rectangle_outline(x + TILE_SIZE // 2, y + TILE_SIZE // 2, TILE_SIZE, TILE_SIZE, arcade.color.GRAY)
 
         # Afficher l'inventaire au-dessus des boutons
-        arcade.draw_text("Inventaire", SCREEN_WIDTH-MENU_WIDTH-PADDING, SCREEN_HEIGHT-BUTTON_HEIGHT-2*PADDING - 7, arcade.color.WHITE, 14)
+        arcade.draw_text(f"Inventaire ({len(self.inventory)}/{INVENTORY_SIZE})", SCREEN_WIDTH-MENU_WIDTH-PADDING, SCREEN_HEIGHT-BUTTON_HEIGHT-2*PADDING - 7, arcade.color.WHITE, 14)
         arcade.draw_rectangle_outline(SCREEN_WIDTH-MENU_WIDTH-PADDING + MENU_WIDTH//2, SCREEN_HEIGHT-BUTTON_HEIGHT-3*PADDING -INVENTORY_HEIGHT//2, MENU_WIDTH, INVENTORY_HEIGHT, arcade.color.WHITE)
-        arcade.draw_text("\n".join(self.inventory), SCREEN_WIDTH-MENU_WIDTH-PADDING + 10, SCREEN_HEIGHT-BUTTON_HEIGHT-3*PADDING -INVENTORY_HEIGHT//2 - 20, arcade.color.WHITE, 14)
+        for i, item in enumerate(self.inventory):
+            arcade.draw_text(item, SCREEN_WIDTH-MENU_WIDTH-PADDING + 10, SCREEN_HEIGHT-BUTTON_HEIGHT-4*PADDING - 20*i, arcade.color.WHITE, 14)
 
         # Afficher les boutons
         self.manager.draw()
