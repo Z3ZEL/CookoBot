@@ -9,12 +9,13 @@ from collections import deque
 PADDING = 25
 TILE_SIZE = 50
 OBJ_SIZE = TILE_SIZE - 10
-MAP_SIZE = 20
+NB_TILES = 20
+MAP_SIZE = NB_TILES * TILE_SIZE
 BUTTON_HEIGHT = 50
 BUTTON_WIDTH = 100
 MENU_WIDTH = BUTTON_WIDTH * 2 + PADDING
-SCREEN_WIDTH = TILE_SIZE * MAP_SIZE + PADDING * 3 + MENU_WIDTH
-SCREEN_HEIGHT = TILE_SIZE * MAP_SIZE + PADDING * 2
+SCREEN_WIDTH = TILE_SIZE * NB_TILES + PADDING * 3 + MENU_WIDTH
+SCREEN_HEIGHT = TILE_SIZE * NB_TILES + PADDING * 2
 INVENTORY_HEIGHT = 300
 INVENTORY_SIZE = 3
 MOVE_DELAY = 0.2  # 250 ms
@@ -26,35 +27,56 @@ class MiniJeuArcade(arcade.Window):
         self.player = None
         self.inventory = []
         self.fruits = ['banane', 'pomme', 'fraise']
-        self.fruits_colors = {'banane': arcade.color.YELLOW, 'pomme': arcade.color.RED, 'fraise': arcade.color.PINK}
         self.items_on_map = {}
         self.path = []  # Chemin calculé
         self.path_index = 0  # Indice du prochain pas à suivre
         self.inventory = deque(maxlen=INVENTORY_SIZE)  # Inventaire limité à 3 objets
 
         # Create a horizontale BoxGroup to align buttons
-        self.h_box = arcade.gui.UIBoxLayout(vertical=False, x=SCREEN_WIDTH-MENU_WIDTH-PADDING, y=SCREEN_HEIGHT-PADDING)
+        self.action_box = arcade.gui.UIBoxLayout(vertical=False, x=SCREEN_WIDTH-MENU_WIDTH-PADDING, y=SCREEN_HEIGHT-PADDING)
+        self.chat_box = arcade.gui.UIBoxLayout(vertical=True, x=SCREEN_WIDTH-MENU_WIDTH-PADDING, y=SCREEN_HEIGHT//2)
 
         # Créer le bouton de ramassage
-        pick_up_button = arcade.gui.UIFlatButton(text="Ramasser", width=BUTTON_WIDTH, style={'bg_color': arcade.color.GRAY})
+        pick_up_button = arcade.gui.UIFlatButton(text="Ramasser", width=BUTTON_WIDTH, style={'bg_color': arcade.color.MAUVE_TAUPE})
         pick_up_button.on_click = self.pick_up_item
-        self.h_box.add(pick_up_button.with_space_around(right=PADDING))
+        self.action_box.add(pick_up_button.with_space_around(right=PADDING))
 
         # Créer le bouton de dépôt
-        drop_button = arcade.gui.UIFlatButton(text="Déposer", width=BUTTON_WIDTH, style={'bg_color': arcade.color.GRAY})
+        drop_button = arcade.gui.UIFlatButton(text="Déposer", width=BUTTON_WIDTH, style={'bg_color': arcade.color.MAUVE_TAUPE})
         drop_button.on_click = self.drop_item
-        self.h_box.add(drop_button)
+        self.action_box.add(drop_button)
+
+        # Ajoutez ce bloc de code dans la méthode __init__ juste après la création des boutons de ramassage et de dépôt
+        self.text_input = arcade.gui.UIInputText(
+          text_color=arcade.color.BLACK,
+          font_size=12,
+          height=100,
+          width=200,
+          text='Hello ..',
+          multiline=True,
+        )
+        self.chat_box.add(self.text_input)
+
+        send_button = arcade.gui.UIFlatButton(text="Envoyer", width=BUTTON_WIDTH, style={'bg_color': arcade.color.MAUVE_TAUPE})
+        send_button.on_click = self.send_text
+        self.chat_box.add(send_button)
 
         # Créer le gestionnaire d'interface utilisateur
         self.manager = arcade.gui.UIManager()
         self.manager.enable()
-        self.manager.add(self.h_box)
+        self.manager.add(self.action_box)
+        self.manager.add(self.chat_box)
+
 
     def setup(self):
         """Initialisation de la carte et du personnage."""
-        self.tile_map = [[None for _ in range(MAP_SIZE)] for _ in range(MAP_SIZE)]
-        x_start = random.randint(0, MAP_SIZE - 1)
-        y_start = random.randint(0, MAP_SIZE - 1)
+        # Background
+        arcade.set_background_color((250, 235, 235))
+
+        # Création de la carte & positionnement du personnage
+        self.tile_map = [[None for _ in range(NB_TILES)] for _ in range(NB_TILES)]
+        x_start = random.randint(0, NB_TILES - 1)
+        y_start = random.randint(0, NB_TILES - 1)
         self.player = {'x': x_start, 'y': y_start}  # Position initiale du personnage
 
         # Chargement des textures
@@ -65,11 +87,10 @@ class MiniJeuArcade(arcade.Window):
             'fraise': arcade.load_texture("images/poire.png")
         }
 
-
         # Placement aléatoire des objets sur la carte
         for _ in range(20):  # Exemple : 20 fruits aléatoires
-            x = random.randint(0, MAP_SIZE - 1)
-            y = random.randint(0, MAP_SIZE - 1)
+            x = random.randint(0, NB_TILES - 1)
+            y = random.randint(0, NB_TILES - 1)
             fruit = random.choice(self.fruits)
             self.items_on_map[(x, y)] = fruit
 
@@ -82,8 +103,19 @@ class MiniJeuArcade(arcade.Window):
             for step in self.path[self.path_index:]:
                 position_x = step[0] * TILE_SIZE + TILE_SIZE // 2 + PADDING
                 position_y = step[1] * TILE_SIZE + TILE_SIZE // 2 + PADDING
-                arcade.draw_rectangle_filled(position_x, position_y, TILE_SIZE, TILE_SIZE, arcade.color.LIGHT_GRAY)
+                arcade.draw_rectangle_filled(position_x, position_y, TILE_SIZE, TILE_SIZE, (220, 205, 205))
 
+        # Dessiner la grille
+        arcade.draw_rectangle_outline(PADDING + MAP_SIZE//2, PADDING + MAP_SIZE//2, MAP_SIZE, MAP_SIZE, arcade.color.MAUVE_TAUPE, border_width=4)
+        for row in range(NB_TILES):
+            for col in range(NB_TILES):
+                x = col * TILE_SIZE + PADDING
+                y = row * TILE_SIZE + PADDING
+                # if (col, row) in self.items_on_map.keys():
+                #     arcade.draw_rectangle_filled(x + TILE_SIZE // 2, y + TILE_SIZE // 2, TILE_SIZE, TILE_SIZE, arcade.color.MAUVELOUS)
+                # else:
+                arcade.draw_rectangle_outline(x + TILE_SIZE // 2, y + TILE_SIZE // 2, TILE_SIZE, TILE_SIZE, arcade.color.MAUVE_TAUPE)
+        
         # Dessiner les objets sur la carte
         for (x, y), fruit in self.items_on_map.items():
             position_x = x * TILE_SIZE + TILE_SIZE // 2 + PADDING
@@ -97,19 +129,11 @@ class MiniJeuArcade(arcade.Window):
             OBJ_SIZE, OBJ_SIZE, self.player_texture
         )
 
-
-        # Dessiner la grille
-        for row in range(MAP_SIZE):
-            for col in range(MAP_SIZE):
-                x = col * TILE_SIZE + PADDING
-                y = row * TILE_SIZE + PADDING
-                arcade.draw_rectangle_outline(x + TILE_SIZE // 2, y + TILE_SIZE // 2, TILE_SIZE, TILE_SIZE, arcade.color.GRAY)
-
         # Afficher l'inventaire au-dessus des boutons
-        arcade.draw_text(f"Inventaire ({len(self.inventory)}/{INVENTORY_SIZE})", SCREEN_WIDTH-MENU_WIDTH-PADDING, SCREEN_HEIGHT-BUTTON_HEIGHT-2*PADDING - 7, arcade.color.WHITE, 14)
-        arcade.draw_rectangle_outline(SCREEN_WIDTH-MENU_WIDTH-PADDING + MENU_WIDTH//2, SCREEN_HEIGHT-BUTTON_HEIGHT-3*PADDING -INVENTORY_HEIGHT//2, MENU_WIDTH, INVENTORY_HEIGHT, arcade.color.WHITE)
+        arcade.draw_text(f"Inventaire ({len(self.inventory)}/{INVENTORY_SIZE})", SCREEN_WIDTH-MENU_WIDTH-PADDING, SCREEN_HEIGHT-BUTTON_HEIGHT-2*PADDING - 7, arcade.color.MAUVE_TAUPE, 14)
+        arcade.draw_rectangle_outline(SCREEN_WIDTH-MENU_WIDTH-PADDING + MENU_WIDTH//2, SCREEN_HEIGHT-BUTTON_HEIGHT-3*PADDING -INVENTORY_HEIGHT//2, MENU_WIDTH, INVENTORY_HEIGHT, arcade.color.MAUVE_TAUPE)
         for i, item in enumerate(self.inventory):
-            arcade.draw_text(item, SCREEN_WIDTH-MENU_WIDTH-PADDING + 10, SCREEN_HEIGHT-BUTTON_HEIGHT-4*PADDING - 20*i, arcade.color.WHITE, 14)
+            arcade.draw_text(item, SCREEN_WIDTH-MENU_WIDTH-PADDING + 10, SCREEN_HEIGHT-BUTTON_HEIGHT-4*PADDING - 20*i, arcade.color.MAUVE_TAUPE, 14)
 
         # Afficher les boutons
         self.manager.draw()
@@ -120,7 +144,7 @@ class MiniJeuArcade(arcade.Window):
         grid_x = (x - PADDING) // TILE_SIZE
         grid_y = (y - PADDING) // TILE_SIZE
 
-        if 0 <= grid_x < MAP_SIZE and 0 <= grid_y < MAP_SIZE:
+        if 0 <= grid_x < NB_TILES and 0 <= grid_y < NB_TILES:
             self.path = self.a_star(self.player['x'], self.player['y'], grid_x, grid_y)
             if self.path:
                 self.path_index = 0  # Réinitialise l'index de l'étape
@@ -136,7 +160,7 @@ class MiniJeuArcade(arcade.Window):
         open_set = PriorityQueue()
         open_set.put((0, (start_x, start_y)))
         came_from = {}
-        g_score = {pos: float('inf') for pos in [(x, y) for x in range(MAP_SIZE) for y in range(MAP_SIZE)]}
+        g_score = {pos: float('inf') for pos in [(x, y) for x in range(NB_TILES) for y in range(NB_TILES)]}
         g_score[(start_x, start_y)] = 0
         f_score = g_score.copy()
         f_score[(start_x, start_y)] = heuristic(start_x, start_y, goal_x, goal_y)
@@ -154,7 +178,7 @@ class MiniJeuArcade(arcade.Window):
             x, y = current
             for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:  # Déplacement N/S/E/O
                 neighbor = (x + dx, y + dy)
-                if 0 <= neighbor[0] < MAP_SIZE and 0 <= neighbor[1] < MAP_SIZE:  # Vérifier les limites
+                if 0 <= neighbor[0] < NB_TILES and 0 <= neighbor[1] < NB_TILES:  # Vérifier les limites
                     tentative_g_score = g_score[(x, y)] + 1
                     if tentative_g_score < g_score[neighbor]:
                         came_from[neighbor] = (x, y)
@@ -195,6 +219,11 @@ class MiniJeuArcade(arcade.Window):
             item_to_drop = self.inventory.pop()
             self.items_on_map[current_pos] = item_to_drop
             self.inventory.append(existing_item)
+    
+    def send_text(self, event):
+        print("Texte envoyé :", self.text_input.text)
+        self.text_input.text = ""  # Efface le texte après l'envoi
+
 
 
 
