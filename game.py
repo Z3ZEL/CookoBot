@@ -4,55 +4,7 @@ import time
 from queue import PriorityQueue
 import arcade.gui
 from collections import deque
-
-# Constantes du jeu
-PADDING = 25
-NB_TILES = 15
-TILE_SIZE = 50
-OBJ_SIZE = TILE_SIZE - 10
-MAP_SIZE = NB_TILES * TILE_SIZE
-BUTTON_HEIGHT = 50
-BUTTON_WIDTH = 150
-
-MENU_X = MAP_SIZE + 2*PADDING
-MENU_WIDTH = BUTTON_WIDTH * 2 + PADDING
-
-SCREEN_WIDTH = MAP_SIZE + 3*PADDING + MENU_WIDTH
-SCREEN_HEIGHT = MAP_SIZE + 2*PADDING
-
-POINT_PADDING = 50
-POINT_BOX_X = MENU_X + POINT_PADDING
-POINT_BOX_Y = SCREEN_HEIGHT - PADDING - POINT_PADDING
-POINT_BOX_HEIGHT = 60
-LOGO_SIZE = 50
-
-INVENTORY_SIZE = 3
-INVENTORY_TITLE_Y = POINT_BOX_Y - POINT_BOX_HEIGHT - PADDING
-INVENTORY_TITLE_HEIGHT = 25
-INVENTORY_TEXT_HEIGHT = 25
-INVENTORY_BOX_PADDING = 10
-INVENTORY_BOX_Y = INVENTORY_TITLE_Y - INVENTORY_TITLE_HEIGHT
-INVENTORY_BOX_HEIGHT = INVENTORY_TEXT_HEIGHT*INVENTORY_SIZE + INVENTORY_BOX_PADDING
-INVENTORY_TEXT_X = MENU_X + INVENTORY_BOX_PADDING
-INVENTORY_TEXT_Y = INVENTORY_BOX_Y - INVENTORY_TEXT_HEIGHT
-INVENTORY_BUTTON_Y = INVENTORY_BOX_Y - INVENTORY_BOX_HEIGHT - PADDING
-INVENTORY_BUTTON_HEIGHT = BUTTON_HEIGHT
-
-INSTRUCTION_TITLE_Y = INVENTORY_BUTTON_Y - INVENTORY_BUTTON_HEIGHT - 2*PADDING
-INSTRUCTION_TITLE_HEIGHT = 25
-INSTRUCTION_BOX_PADDING = 10
-INSTRUCTION_BOX_Y = INSTRUCTION_TITLE_Y - INSTRUCTION_TITLE_HEIGHT
-INSTRUCTION_BOX_HEIGHT = 2*INSTRUCTION_BOX_PADDING + 150
-INSTRUCTION_TEXT_X = MENU_X + INSTRUCTION_BOX_PADDING
-INSTRUCTION_TEXT_Y = INSTRUCTION_BOX_Y - INSTRUCTION_BOX_PADDING
-INSTRUCTION_TEXT_HEIGHT = INSTRUCTION_BOX_HEIGHT - 2*INSTRUCTION_BOX_PADDING
-INSTRUCTION_TEXT_WIDTH = MENU_WIDTH - 2*INSTRUCTION_BOX_PADDING
-INSTRUCTION_BUTTON_Y = INSTRUCTION_BOX_Y - INSTRUCTION_BOX_HEIGHT - PADDING
-INSTRUCTION_BUTTON_HEIGHT = BUTTON_HEIGHT
-
-MOVE_DELAY = 0.2  # 250 ms
-
-
+from constants import *
 
 class MiniJeuArcade(arcade.Window):
     def __init__(self):
@@ -82,11 +34,12 @@ class MiniJeuArcade(arcade.Window):
         drop_button.on_click = self.drop_item
         self.action_box.add(drop_button)
 
-        # Ajoutez ce bloc de code dans la méthode __init__ juste après la création des boutons de ramassage et de dépôt
+        # Créer la zone de texte
         self.text_input = arcade.gui.UIInputText(height=INSTRUCTION_TEXT_HEIGHT, width=INSTRUCTION_TEXT_WIDTH,
-            text_color=arcade.color.MAUVE_TAUPE, font_size=14, text='Attrape une pomme !', multiline=True )
+            text_color=arcade.color.MAUVE_TAUPE, font_size=14, text="Attrape une pomme !", multiline=True, color=arcade.color.MAUVE_TAUPE)
         self.chat_box.add(self.text_input)
 
+        # Créer le bouton d'envoi
         send_button = arcade.gui.UIFlatButton(text="Envoyer", width=BUTTON_WIDTH, style={'bg_color': arcade.color.MAUVE_TAUPE})
         send_button.on_click = self.send_text
         self.chat_box.add(send_button.with_space_around(top=PADDING+INSTRUCTION_BOX_PADDING))
@@ -97,11 +50,10 @@ class MiniJeuArcade(arcade.Window):
         self.manager.add(self.action_box)
         self.manager.add(self.chat_box)
 
-
     def setup(self):
         """Initialisation de la carte et du personnage."""
         # Background
-        arcade.set_background_color((250, 235, 235))
+        arcade.set_background_color(BACKGROUND_COLOR)
 
         # Création de la carte & positionnement du personnage
         self.tile_map = [[None for _ in range(NB_TILES)] for _ in range(NB_TILES)]
@@ -118,7 +70,7 @@ class MiniJeuArcade(arcade.Window):
         }
 
         # Placement aléatoire des objets sur la carte
-        for _ in range(20):  # Exemple : 20 fruits aléatoires
+        for _ in range(NB_OBJ):  # NB_OBJ fruits aléatoires
             x = random.randint(0, NB_TILES - 1)
             y = random.randint(0, NB_TILES - 1)
             fruit = random.choice(self.fruits)
@@ -177,25 +129,26 @@ class MiniJeuArcade(arcade.Window):
         # Afficher les boutons
         self.manager.draw()
 
-
-
     def on_mouse_press(self, x, y, button, modifiers):
+        # Convertir les coordonnées de la souris en coordonnées de la grille
         grid_x = (x - PADDING) // TILE_SIZE
         grid_y = (y - PADDING) // TILE_SIZE
 
+        # Vérifier si la case est valide
         if 0 <= grid_x < NB_TILES and 0 <= grid_y < NB_TILES:
+            # Calculer le chemin vers la case
             self.path = self.a_star(self.player['x'], self.player['y'], grid_x, grid_y)
             if self.path:
                 self.path_index = 0  # Réinitialise l'index de l'étape
                 arcade.unschedule(self.move_along_path)  # Arrête le déplacement actuel
                 arcade.schedule(self.move_along_path, MOVE_DELAY)  # Planifie la fonction de déplacement
 
-
     def a_star(self, start_x, start_y, goal_x, goal_y):
         """Implémentation de l'algorithme A*."""
         def heuristic(x1, y1, x2, y2):
             return abs(x1 - x2) + abs(y1 - y2)
 
+        # Initialisation des structures de données
         open_set = PriorityQueue()
         open_set.put((0, (start_x, start_y)))
         came_from = {}
@@ -204,8 +157,12 @@ class MiniJeuArcade(arcade.Window):
         f_score = g_score.copy()
         f_score[(start_x, start_y)] = heuristic(start_x, start_y, goal_x, goal_y)
 
+        # Recherche du chemin
         while not open_set.empty():
+            # Extraire le nœud avec le score f le plus bas
             _, current = open_set.get()
+
+            # Vérifier si on a atteint la destination
             if current == (goal_x, goal_y):
                 path = []
                 while current in came_from:
@@ -214,6 +171,7 @@ class MiniJeuArcade(arcade.Window):
                 path.reverse()
                 return path
 
+            # Parcourir les voisins
             x, y = current
             for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:  # Déplacement N/S/E/O
                 neighbor = (x + dx, y + dy)
@@ -229,7 +187,9 @@ class MiniJeuArcade(arcade.Window):
 
     def move_along_path(self, delta_time):
         """Déplace le personnage le long du chemin avec un délai."""
+        # Vérifie si le chemin n'est pas terminé
         if self.path_index < len(self.path):
+            # Déplace le personnage à l'étape suivante
             self.player['x'], self.player['y'] = self.path[self.path_index]
             self.path_index += 1
             self.step_count += 1 # Incrémente le compteur de pas
@@ -238,6 +198,8 @@ class MiniJeuArcade(arcade.Window):
             arcade.unschedule(self.move_along_path)  # Arrête la planification lorsque le déplacement est terminé
 
     def pick_up_item(self, event):
+        """Ramasse un objet sur la carte."""
+        # Vérifie si le joueur est sur une case avec un objet
         current_pos = (self.player['x'], self.player['y'])
         if current_pos in self.items_on_map:
             item = self.items_on_map[current_pos]
@@ -250,6 +212,8 @@ class MiniJeuArcade(arcade.Window):
             self.action_count += 1 # Incrémente le compteur d'actions
 
     def drop_item(self, event):
+        """Dépose un objet sur la carte."""
+        # Vérifie si l'inventaire n'est pas vide
         current_pos = (self.player['x'], self.player['y'])
         if self.inventory and current_pos not in self.items_on_map:
             item_to_drop = self.inventory.popleft()  # Retirer le dernier objet de l'inventaire
@@ -263,7 +227,13 @@ class MiniJeuArcade(arcade.Window):
     
     def send_text(self, event):
         print("Texte envoyé :", self.text_input.text)
-        self.text_input.text = ""  # Efface le texte après l'envoi
+        self.text_input.text = "Sended !"  # Efface le texte après l'envoi
+
+        actions = {
+            'PICK': self.pick_up_item,
+            'DROP': self.drop_item,
+            'MOVE': self.move_along_path
+        }
 
 
 
