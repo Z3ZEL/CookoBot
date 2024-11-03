@@ -20,8 +20,14 @@ MENU_WIDTH = BUTTON_WIDTH * 2 + PADDING
 SCREEN_WIDTH = MAP_SIZE + 3*PADDING + MENU_WIDTH
 SCREEN_HEIGHT = MAP_SIZE + 2*PADDING
 
+POINT_PADDING = 50
+POINT_BOX_X = MENU_X + POINT_PADDING
+POINT_BOX_Y = SCREEN_HEIGHT - PADDING - POINT_PADDING
+POINT_BOX_HEIGHT = 60
+LOGO_SIZE = 50
+
 INVENTORY_SIZE = 3
-INVENTORY_TITLE_Y = SCREEN_HEIGHT - 2*PADDING
+INVENTORY_TITLE_Y = POINT_BOX_Y - POINT_BOX_HEIGHT - PADDING
 INVENTORY_TITLE_HEIGHT = 25
 INVENTORY_TEXT_HEIGHT = 25
 INVENTORY_BOX_PADDING = 10
@@ -58,6 +64,8 @@ class MiniJeuArcade(arcade.Window):
         self.items_on_map = {}
         self.path = []  # Chemin calculé
         self.path_index = 0  # Indice du prochain pas à suivre
+        self.step_count = 0  # Compteur de pas
+        self.action_count = 0  # Compteur d'actions
         self.inventory = deque(maxlen=INVENTORY_SIZE)  # Inventaire limité à 3 objets
 
         # Create a horizontale BoxGroup to align buttons
@@ -148,6 +156,14 @@ class MiniJeuArcade(arcade.Window):
             OBJ_SIZE, OBJ_SIZE, self.player_texture
         )
 
+        # Afficher le compteur de pas
+        arcade.draw_texture_rectangle(POINT_BOX_X, POINT_BOX_Y, LOGO_SIZE, LOGO_SIZE, arcade.load_texture("images/walk.png"))
+        arcade.draw_text(f"{self.step_count}", POINT_BOX_X+LOGO_SIZE-10, POINT_BOX_Y-LOGO_SIZE//2+5, arcade.color.MAUVE_TAUPE, LOGO_SIZE-10)
+
+        # Afficher le compteur d'actions
+        arcade.draw_texture_rectangle(POINT_BOX_X+MENU_WIDTH//2, POINT_BOX_Y, LOGO_SIZE, LOGO_SIZE, arcade.load_texture("images/star.png"))
+        arcade.draw_text(f"{self.action_count}", POINT_BOX_X+MENU_WIDTH//2+LOGO_SIZE-10, POINT_BOX_Y-LOGO_SIZE//2+5, arcade.color.MAUVE_TAUPE, LOGO_SIZE-10)
+
         # Afficher l'inventaire au-dessus des boutons
         arcade.draw_text(f"Inventaire ({len(self.inventory)}/{INVENTORY_SIZE})", MENU_X, INVENTORY_TITLE_Y, arcade.color.MAUVE_TAUPE, 16, font_name="Comic Sans MS")
         arcade.draw_rectangle_outline(MENU_X + MENU_WIDTH//2, INVENTORY_BOX_Y - INVENTORY_BOX_HEIGHT//2, MENU_WIDTH, INVENTORY_BOX_HEIGHT, arcade.color.MAUVE_TAUPE)
@@ -155,7 +171,6 @@ class MiniJeuArcade(arcade.Window):
             arcade.draw_text(item, INVENTORY_TEXT_X, INVENTORY_TEXT_Y - INVENTORY_TEXT_HEIGHT*i, arcade.color.MAUVE_TAUPE, 14)
 
         # Afficher le chat
-        
         arcade.draw_text("Instruction", MENU_X, INSTRUCTION_TITLE_Y, arcade.color.MAUVE_TAUPE, 16, font_name="Comic Sans MS")
         arcade.draw_rectangle_outline(MENU_X + MENU_WIDTH//2, INSTRUCTION_BOX_Y-INSTRUCTION_BOX_HEIGHT//2, MENU_WIDTH, INSTRUCTION_BOX_HEIGHT, arcade.color.MAUVE_TAUPE)
 
@@ -217,6 +232,7 @@ class MiniJeuArcade(arcade.Window):
         if self.path_index < len(self.path):
             self.player['x'], self.player['y'] = self.path[self.path_index]
             self.path_index += 1
+            self.step_count += 1 # Incrémente le compteur de pas
             self.on_draw()  # Redessine l'écran pour montrer le mouvement
         else:
             arcade.unschedule(self.move_along_path)  # Arrête la planification lorsque le déplacement est terminé
@@ -231,16 +247,17 @@ class MiniJeuArcade(arcade.Window):
             else:
                 del self.items_on_map[current_pos]  # Retirer l'objet de la carte
             self.inventory.append(item)  # Ajouter l'objet à l'inventaire
+            self.action_count += 1 # Incrémente le compteur d'actions
 
     def drop_item(self, event):
         current_pos = (self.player['x'], self.player['y'])
         if self.inventory and current_pos not in self.items_on_map:
-            item_to_drop = self.inventory.pop()  # Retirer le dernier objet de l'inventaire
+            item_to_drop = self.inventory.popleft()  # Retirer le dernier objet de l'inventaire
             self.items_on_map[current_pos] = item_to_drop  # Le déposer sur la carte
         elif self.inventory and current_pos in self.items_on_map:
             # Échange avec l'objet existant
             existing_item = self.items_on_map[current_pos]
-            item_to_drop = self.inventory.pop()
+            item_to_drop = self.inventory.popleft()
             self.items_on_map[current_pos] = item_to_drop
             self.inventory.append(existing_item)
     
