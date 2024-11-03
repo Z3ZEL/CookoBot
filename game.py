@@ -36,7 +36,7 @@ class MiniJeuArcade(arcade.Window):
 
         # Créer la zone de texte
         self.text_input = arcade.gui.UIInputText(height=INSTRUCTION_TEXT_HEIGHT, width=INSTRUCTION_TEXT_WIDTH,
-            text_color=arcade.color.MAUVE_TAUPE, font_size=14, text="Attrape une pomme !", multiline=True, color=arcade.color.MAUVE_TAUPE)
+            text_color=arcade.color.MAUVE_TAUPE, font_size=14, text="Attrape une pomme !", multiline=True)
         self.chat_box.add(self.text_input)
 
         # Créer le bouton d'envoi
@@ -108,21 +108,22 @@ class MiniJeuArcade(arcade.Window):
             OBJ_SIZE, OBJ_SIZE, self.player_texture
         )
 
-        # Afficher le compteur de pas
+        # # Afficher le compteur de pas
         arcade.draw_texture_rectangle(POINT_BOX_X, POINT_BOX_Y, LOGO_SIZE, LOGO_SIZE, arcade.load_texture("images/walk.png"))
-        arcade.draw_text(f"{self.step_count}", POINT_BOX_X+LOGO_SIZE-10, POINT_BOX_Y-LOGO_SIZE//2+5, arcade.color.MAUVE_TAUPE, LOGO_SIZE-10)
+        arcade.draw_text(f"{self.step_count}", POINT_BOX_X+LOGO_SIZE-10, POINT_BOX_Y-LOGO_SIZE//2+10, arcade.color.MAUVE_TAUPE, 16, font_name="Comic Sans MS")
 
-        # Afficher le compteur d'actions
+        # # Afficher le compteur d'actions
         arcade.draw_texture_rectangle(POINT_BOX_X+MENU_WIDTH//2, POINT_BOX_Y, LOGO_SIZE, LOGO_SIZE, arcade.load_texture("images/star.png"))
-        arcade.draw_text(f"{self.action_count}", POINT_BOX_X+MENU_WIDTH//2+LOGO_SIZE-10, POINT_BOX_Y-LOGO_SIZE//2+5, arcade.color.MAUVE_TAUPE, LOGO_SIZE-10)
+        arcade.draw_text(f"{self.action_count}", POINT_BOX_X+MENU_WIDTH//2+LOGO_SIZE-10, POINT_BOX_Y-LOGO_SIZE//2+10, arcade.color.MAUVE_TAUPE, 16, font_name="Comic Sans MS")
 
-        # Afficher l'inventaire au-dessus des boutons
+
+        # # Afficher l'inventaire au-dessus des boutons
         arcade.draw_text(f"Inventaire ({len(self.inventory)}/{INVENTORY_SIZE})", MENU_X, INVENTORY_TITLE_Y, arcade.color.MAUVE_TAUPE, 16, font_name="Comic Sans MS")
         arcade.draw_rectangle_outline(MENU_X + MENU_WIDTH//2, INVENTORY_BOX_Y - INVENTORY_BOX_HEIGHT//2, MENU_WIDTH, INVENTORY_BOX_HEIGHT, arcade.color.MAUVE_TAUPE)
         for i, item in enumerate(self.inventory):
             arcade.draw_text(item, INVENTORY_TEXT_X, INVENTORY_TEXT_Y - INVENTORY_TEXT_HEIGHT*i, arcade.color.MAUVE_TAUPE, 14)
 
-        # Afficher le chat
+        # # Afficher le chat
         arcade.draw_text("Instruction", MENU_X, INSTRUCTION_TITLE_Y, arcade.color.MAUVE_TAUPE, 16, font_name="Comic Sans MS")
         arcade.draw_rectangle_outline(MENU_X + MENU_WIDTH//2, INSTRUCTION_BOX_Y-INSTRUCTION_BOX_HEIGHT//2, MENU_WIDTH, INSTRUCTION_BOX_HEIGHT, arcade.color.MAUVE_TAUPE)
 
@@ -227,13 +228,13 @@ class MiniJeuArcade(arcade.Window):
     
     def send_text(self, event):
         print("Texte envoyé :", self.text_input.text)
-        self.text_input.text = "Sended !"  # Efface le texte après l'envoi
+        self.text_input.text = ""  # Efface le texte après l'envoi
 
-        actions = {
-            'PICK': self.pick_up_item,
-            'DROP': self.drop_item,
-            'MOVE': self.move_along_path
-        }
+        # actions = {
+        #     'PICK': self.pick_up_item,
+        #     'DROP': self.drop_item,
+        #     'MOVE': self.move_along_path
+        # }
 
 
 
