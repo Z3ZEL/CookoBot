@@ -26,12 +26,12 @@ class MiniJeuArcade(arcade.Window):
 
         # Créer le bouton de ramassage
         pick_up_button = arcade.gui.UIFlatButton(text="Ramasser", width=BUTTON_WIDTH, style={'bg_color': arcade.color.MAUVE_TAUPE})
-        pick_up_button.on_click = self.pick_up_item
+        pick_up_button.on_click = self.action_pick
         self.action_box.add(pick_up_button.with_space_around(right=PADDING))
 
         # Créer le bouton de dépôt
         drop_button = arcade.gui.UIFlatButton(text="Déposer", width=BUTTON_WIDTH, style={'bg_color': arcade.color.MAUVE_TAUPE})
-        drop_button.on_click = self.drop_item
+        drop_button.on_click = self.action_drop
         self.action_box.add(drop_button)
 
         # Créer la zone de texte
@@ -41,7 +41,7 @@ class MiniJeuArcade(arcade.Window):
 
         # Créer le bouton d'envoi
         send_button = arcade.gui.UIFlatButton(text="Envoyer", width=BUTTON_WIDTH, style={'bg_color': arcade.color.MAUVE_TAUPE})
-        send_button.on_click = self.send_text
+        send_button.on_click = self.send_instruction
         self.chat_box.add(send_button.with_space_around(top=PADDING+INSTRUCTION_BOX_PADDING))
 
         # Créer le gestionnaire d'interface utilisateur
@@ -121,7 +121,8 @@ class MiniJeuArcade(arcade.Window):
         arcade.draw_text(f"Inventaire ({len(self.inventory)}/{INVENTORY_SIZE})", MENU_X, INVENTORY_TITLE_Y, arcade.color.MAUVE_TAUPE, 16, font_name="Comic Sans MS")
         arcade.draw_rectangle_outline(MENU_X + MENU_WIDTH//2, INVENTORY_BOX_Y - INVENTORY_BOX_HEIGHT//2, MENU_WIDTH, INVENTORY_BOX_HEIGHT, arcade.color.MAUVE_TAUPE)
         for i, item in enumerate(self.inventory):
-            arcade.draw_text(item, INVENTORY_TEXT_X, INVENTORY_TEXT_Y - INVENTORY_TEXT_HEIGHT*i, arcade.color.MAUVE_TAUPE, 14)
+            arcade.draw_text(item, INVENTORY_TEXT_X, INVENTORY_TEXT_Y - INVENTORY_TEXT_HEIGHT*i, arcade.color.MAUVE_TAUPE, 16, font_name="Comic Sans MS")
+            # arcade.draw_text(item, INVENTORY_TEXT_X, INVENTORY_TEXT_Y - INVENTORY_TEXT_HEIGHT*i, arcade.color.MAUVE_TAUPE, 14, font_name="Comic Sans MS")
 
         # # Afficher le chat
         arcade.draw_text("Instruction", MENU_X, INSTRUCTION_TITLE_Y, arcade.color.MAUVE_TAUPE, 16, font_name="Comic Sans MS")
@@ -141,8 +142,7 @@ class MiniJeuArcade(arcade.Window):
             self.path = self.a_star(self.player['x'], self.player['y'], grid_x, grid_y)
             if self.path:
                 self.path_index = 0  # Réinitialise l'index de l'étape
-                arcade.unschedule(self.move_along_path)  # Arrête le déplacement actuel
-                arcade.schedule(self.move_along_path, MOVE_DELAY)  # Planifie la fonction de déplacement
+                self.action_move()
 
     def a_star(self, start_x, start_y, goal_x, goal_y):
         """Implémentation de l'algorithme A*."""
@@ -186,7 +186,7 @@ class MiniJeuArcade(arcade.Window):
 
         return None  # Aucun chemin trouvé
 
-    def move_along_path(self, delta_time):
+    def move_along_path(self, delta_time=MOVE_DELAY):
         """Déplace le personnage le long du chemin avec un délai."""
         # Vérifie si le chemin n'est pas terminé
         if self.path_index < len(self.path):
@@ -197,8 +197,14 @@ class MiniJeuArcade(arcade.Window):
             self.on_draw()  # Redessine l'écran pour montrer le mouvement
         else:
             arcade.unschedule(self.move_along_path)  # Arrête la planification lorsque le déplacement est terminé
+    
+    def action_move(self, event=None):
+        # Execute le mouvement
+        self.action_count += 1  # Incrémente le compteur d'actions
+        arcade.unschedule(self.move_along_path)  # Arrête le déplacement actuel
+        arcade.schedule(self.move_along_path, MOVE_DELAY)  # Planifie la fonction de déplacement
 
-    def pick_up_item(self, event):
+    def action_pick(self, event=None):
         """Ramasse un objet sur la carte."""
         # Vérifie si le joueur est sur une case avec un objet
         current_pos = (self.player['x'], self.player['y'])
@@ -210,32 +216,60 @@ class MiniJeuArcade(arcade.Window):
             else:
                 del self.items_on_map[current_pos]  # Retirer l'objet de la carte
             self.inventory.append(item)  # Ajouter l'objet à l'inventaire
-            self.action_count += 1 # Incrémente le compteur d'actions
+            self.action_count += 1  # Incrémente le compteur d'actions
 
-    def drop_item(self, event):
+    def action_drop(self, event=None):
         """Dépose un objet sur la carte."""
         # Vérifie si l'inventaire n'est pas vide
+        if not self.inventory:
+            return None
+        
+        # Execute l'action
         current_pos = (self.player['x'], self.player['y'])
-        if self.inventory and current_pos not in self.items_on_map:
+        self.action_count += 1  # Incrémente le compteur d'actions
+        if current_pos not in self.items_on_map:
+            # Déposer l'objet sur la carte
             item_to_drop = self.inventory.popleft()  # Retirer le dernier objet de l'inventaire
             self.items_on_map[current_pos] = item_to_drop  # Le déposer sur la carte
-        elif self.inventory and current_pos in self.items_on_map:
+        elif current_pos in self.items_on_map:
             # Échange avec l'objet existant
-            existing_item = self.items_on_map[current_pos]
-            item_to_drop = self.inventory.popleft()
-            self.items_on_map[current_pos] = item_to_drop
-            self.inventory.append(existing_item)
+            existing_item = self.items_on_map[current_pos] # Récupérer l'objet existant
+            item_to_drop = self.inventory.popleft() # Retirer le dernier objet de l'inventaire
+            self.items_on_map[current_pos] = item_to_drop # Le déposer sur la carte
+            self.inventory.append(existing_item) # Ajouter l'objet existant à l'inventaire
     
-    def send_text(self, event):
+    def send_instruction(self, event=None):
         print("Texte envoyé :", self.text_input.text)
-        self.text_input.text = ""  # Efface le texte après l'envoi
+    
+        actions = {
+            'PICK': self.action_pick,
+            'DROP': self.action_drop,
+            'MOVE': self.action_move,
+        }
+        # Extrait l'action de l'entrée utilisateur
+        text_split = self.text_input.text.split(" ")
+        if len(text_split) == 2:
+            action, coordinates = text_split
+        else:
+            action, coordinates = text_split[0], None
 
-        # actions = {
-        #     'PICK': self.pick_up_item,
-        #     'DROP': self.drop_item,
-        #     'MOVE': self.move_along_path
-        # }
+        # Exécute l'action correspondante
+        if action in actions:
+            if action == 'MOVE' and coordinates:
+                # Calculer le chemin vers les coordonnées spécifiées
+                x, y = coordinates.split(",")
+                self.path = self.a_star(self.player['x'], self.player['y'], int(x), int(y))
+                if self.path:
+                    self.path_index = 0
+                else:
+                    print("Chemin non trouvé")
+                    return None
 
+            # Exécute l'action
+            actions[action]()
+
+        # Efface le texte après l'envoi
+        self.text_input.text = "" 
 
 
 
