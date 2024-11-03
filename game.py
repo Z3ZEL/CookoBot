@@ -5,14 +5,14 @@ from queue import PriorityQueue
 import arcade.gui
 from collections import deque
 from constants import *
+from llm_request import make_request, make_prompt
 
-class MiniJeuArcade(arcade.Window):
+class CookoBot(arcade.Window):
     def __init__(self):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, "CookoBot")
-        self.tile_map = None
         self.player = None
         self.inventory = []
-        self.fruits = ['Banane', 'Pomme', 'Poire']
+        self.objects = ['Banane', 'Pomme', 'Poire']
         self.items_on_map = {}
         self.path = []  # Chemin calculé
         self.path_index = 0  # Indice du prochain pas à suivre
@@ -56,7 +56,6 @@ class MiniJeuArcade(arcade.Window):
         arcade.set_background_color(BACKGROUND_COLOR)
 
         # Création de la carte & positionnement du personnage
-        self.tile_map = [[None for _ in range(NB_TILES)] for _ in range(NB_TILES)]
         x_start = random.randint(0, NB_TILES - 1)
         y_start = random.randint(0, NB_TILES - 1)
         self.player = {'x': x_start, 'y': y_start}  # Position initiale du personnage
@@ -70,10 +69,10 @@ class MiniJeuArcade(arcade.Window):
         }
 
         # Placement aléatoire des objets sur la carte
-        for _ in range(NB_OBJ):  # NB_OBJ fruits aléatoires
+        for _ in range(NB_OBJ):  # NB_OBJ objects aléatoires
             x = random.randint(0, NB_TILES - 1)
             y = random.randint(0, NB_TILES - 1)
-            fruit = random.choice(self.fruits)
+            fruit = random.choice(self.objects)
             self.items_on_map[(x, y)] = fruit
 
     def on_draw(self):
@@ -240,7 +239,13 @@ class MiniJeuArcade(arcade.Window):
     
     def send_instruction(self, event=None):
         print("Texte envoyé :", self.text_input.text)
-    
+
+        # Demande au LLM de produire la commande
+        prompt = make_prompt(self.text_input.text, self.items_on_map, self.player)
+        answer = make_request(prompt)
+        self.text_input.text = answer
+        
+        # Actions possibles
         actions = {
             'PICK': self.action_pick,
             'DROP': self.action_drop,
@@ -274,6 +279,6 @@ class MiniJeuArcade(arcade.Window):
 
 
 if __name__ == "__main__":
-    window = MiniJeuArcade()
+    window = CookoBot()
     window.setup()
     arcade.run()
