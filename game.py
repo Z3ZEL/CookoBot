@@ -9,32 +9,41 @@ from collections import deque
 PADDING = 25
 TILE_SIZE = 50
 OBJ_SIZE = TILE_SIZE - 10
-NB_TILES = 20
+NB_TILES = 15
 MAP_SIZE = NB_TILES * TILE_SIZE
 BUTTON_HEIGHT = 50
-BUTTON_WIDTH = 100
+BUTTON_WIDTH = 150
 MENU_WIDTH = BUTTON_WIDTH * 2 + PADDING
 SCREEN_WIDTH = TILE_SIZE * NB_TILES + PADDING * 3 + MENU_WIDTH
 SCREEN_HEIGHT = TILE_SIZE * NB_TILES + PADDING * 2
-INVENTORY_HEIGHT = 300
 INVENTORY_SIZE = 3
+INVENTORY_HEIGHT = 2*PADDING + 25*INVENTORY_SIZE
+INSTRUCTION_HEIGHT = 2*PADDING + 150
 MOVE_DELAY = 0.2  # 250 ms
+
+def draw_rounded_box(x, y, width, height, angle, color):
+    arcade.draw_rectangle_filled(x, y, width, height-2*angle, color)
+    arcade.draw_rectangle_filled(x, y, width-2*angle, height, color)
+    arcade.draw_circle_filled(x-width//2+angle, y-height//2+angle, angle, color)
+    arcade.draw_circle_filled(x+width//2-angle, y-height//2+angle, angle, color)
+    arcade.draw_circle_filled(x-width//2+angle, y+height//2-angle, angle, color)
+    arcade.draw_circle_filled(x+width//2-angle, y+height//2-angle, angle, color)
 
 class MiniJeuArcade(arcade.Window):
     def __init__(self):
-        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, "Mini jeu 2D")
+        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, "CookoBot")
         self.tile_map = None
         self.player = None
         self.inventory = []
-        self.fruits = ['banane', 'pomme', 'fraise']
+        self.fruits = ['Banane', 'Pomme', 'Poire']
         self.items_on_map = {}
         self.path = []  # Chemin calculé
         self.path_index = 0  # Indice du prochain pas à suivre
         self.inventory = deque(maxlen=INVENTORY_SIZE)  # Inventaire limité à 3 objets
 
         # Create a horizontale BoxGroup to align buttons
-        self.action_box = arcade.gui.UIBoxLayout(vertical=False, x=SCREEN_WIDTH-MENU_WIDTH-PADDING, y=SCREEN_HEIGHT-PADDING)
-        self.chat_box = arcade.gui.UIBoxLayout(vertical=True, x=SCREEN_WIDTH-MENU_WIDTH-PADDING, y=SCREEN_HEIGHT//2)
+        self.action_box = arcade.gui.UIBoxLayout(vertical=False, x=SCREEN_WIDTH-MENU_WIDTH-PADDING, y=SCREEN_HEIGHT-4*PADDING-INVENTORY_HEIGHT)
+        self.chat_box = arcade.gui.UIBoxLayout(vertical=True, x=SCREEN_WIDTH-MENU_WIDTH-PADDING+10, y=SCREEN_HEIGHT-BUTTON_HEIGHT-INVENTORY_HEIGHT-8*PADDING-10)
 
         # Créer le bouton de ramassage
         pick_up_button = arcade.gui.UIFlatButton(text="Ramasser", width=BUTTON_WIDTH, style={'bg_color': arcade.color.MAUVE_TAUPE})
@@ -47,19 +56,13 @@ class MiniJeuArcade(arcade.Window):
         self.action_box.add(drop_button)
 
         # Ajoutez ce bloc de code dans la méthode __init__ juste après la création des boutons de ramassage et de dépôt
-        self.text_input = arcade.gui.UIInputText(
-          text_color=arcade.color.BLACK,
-          font_size=12,
-          height=100,
-          width=200,
-          text='Hello ..',
-          multiline=True,
-        )
+        self.text_input = arcade.gui.UIInputText(text_color=arcade.color.MAUVE_TAUPE, font_size=14, height=INSTRUCTION_HEIGHT-20, width=MENU_WIDTH-20,
+            text='Attrape une pomme !', multiline=True )
         self.chat_box.add(self.text_input)
 
         send_button = arcade.gui.UIFlatButton(text="Envoyer", width=BUTTON_WIDTH, style={'bg_color': arcade.color.MAUVE_TAUPE})
         send_button.on_click = self.send_text
-        self.chat_box.add(send_button)
+        self.chat_box.add(send_button.with_space_around(top=PADDING+10))
 
         # Créer le gestionnaire d'interface utilisateur
         self.manager = arcade.gui.UIManager()
@@ -82,9 +85,9 @@ class MiniJeuArcade(arcade.Window):
         # Chargement des textures
         self.player_texture = arcade.load_texture("images/robot.png")
         self.fruit_textures = {
-            'banane': arcade.load_texture("images/banane.png"),
-            'pomme': arcade.load_texture("images/pomme.png"),
-            'fraise': arcade.load_texture("images/poire.png")
+            'Banane': arcade.load_texture("images/banane.png"),
+            'Pomme': arcade.load_texture("images/pomme.png"),
+            'Poire': arcade.load_texture("images/poire.png")
         }
 
         # Placement aléatoire des objets sur la carte
@@ -111,9 +114,6 @@ class MiniJeuArcade(arcade.Window):
             for col in range(NB_TILES):
                 x = col * TILE_SIZE + PADDING
                 y = row * TILE_SIZE + PADDING
-                # if (col, row) in self.items_on_map.keys():
-                #     arcade.draw_rectangle_filled(x + TILE_SIZE // 2, y + TILE_SIZE // 2, TILE_SIZE, TILE_SIZE, arcade.color.MAUVELOUS)
-                # else:
                 arcade.draw_rectangle_outline(x + TILE_SIZE // 2, y + TILE_SIZE // 2, TILE_SIZE, TILE_SIZE, arcade.color.MAUVE_TAUPE)
         
         # Dessiner les objets sur la carte
@@ -130,10 +130,15 @@ class MiniJeuArcade(arcade.Window):
         )
 
         # Afficher l'inventaire au-dessus des boutons
-        arcade.draw_text(f"Inventaire ({len(self.inventory)}/{INVENTORY_SIZE})", SCREEN_WIDTH-MENU_WIDTH-PADDING, SCREEN_HEIGHT-BUTTON_HEIGHT-2*PADDING - 7, arcade.color.MAUVE_TAUPE, 14)
-        arcade.draw_rectangle_outline(SCREEN_WIDTH-MENU_WIDTH-PADDING + MENU_WIDTH//2, SCREEN_HEIGHT-BUTTON_HEIGHT-3*PADDING -INVENTORY_HEIGHT//2, MENU_WIDTH, INVENTORY_HEIGHT, arcade.color.MAUVE_TAUPE)
+        arcade.draw_text(f"Inventaire ({len(self.inventory)}/{INVENTORY_SIZE})", SCREEN_WIDTH-MENU_WIDTH-PADDING, SCREEN_HEIGHT-2*PADDING, arcade.color.MAUVE_TAUPE, 16, font_name="Comic Sans MS")
+        arcade.draw_rectangle_outline(SCREEN_WIDTH-MENU_WIDTH-PADDING + MENU_WIDTH//2, SCREEN_HEIGHT-3*PADDING -INVENTORY_HEIGHT//2, MENU_WIDTH, INVENTORY_HEIGHT, arcade.color.MAUVE_TAUPE)
         for i, item in enumerate(self.inventory):
-            arcade.draw_text(item, SCREEN_WIDTH-MENU_WIDTH-PADDING + 10, SCREEN_HEIGHT-BUTTON_HEIGHT-4*PADDING - 20*i, arcade.color.MAUVE_TAUPE, 14)
+            arcade.draw_text(item, SCREEN_WIDTH-MENU_WIDTH-PADDING + 10, SCREEN_HEIGHT-4*PADDING - 25*i, arcade.color.MAUVE_TAUPE, 14)
+
+        # Afficher le chat
+        
+        arcade.draw_text("Instruction", SCREEN_WIDTH-MENU_WIDTH-PADDING, SCREEN_HEIGHT-BUTTON_HEIGHT-INVENTORY_HEIGHT-7*PADDING, arcade.color.MAUVE_TAUPE, 16, font_name="Comic Sans MS")
+        arcade.draw_rectangle_outline(SCREEN_WIDTH-MENU_WIDTH-PADDING + MENU_WIDTH//2, SCREEN_HEIGHT-BUTTON_HEIGHT-INVENTORY_HEIGHT-8*PADDING-INSTRUCTION_HEIGHT//2, MENU_WIDTH, INSTRUCTION_HEIGHT, arcade.color.MAUVE_TAUPE)
 
         # Afficher les boutons
         self.manager.draw()
