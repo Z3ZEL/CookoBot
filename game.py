@@ -5,7 +5,7 @@ from queue import PriorityQueue
 import arcade.gui
 from collections import deque
 from constants import *
-from llm_request import make_request, make_prompt
+from llm_request import make_request, make_prompt, extract_thoughts_and_command
 
 class CookoBot(arcade.Window):
     def __init__(self):
@@ -74,7 +74,7 @@ class CookoBot(arcade.Window):
             y = random.randint(0, NB_TILES - 1)
             fruit = random.choice(self.objects)
             self.items_on_map[(x, y)] = fruit
-
+        
     def on_draw(self):
         """Rendu de l'écran."""
         arcade.start_render()
@@ -243,7 +243,18 @@ class CookoBot(arcade.Window):
         # Demande au LLM de produire la commande
         prompt = make_prompt(self.text_input.text, self.items_on_map, self.player)
         answer = make_request(prompt)
-        self.text_input.text = answer
+        thoughts, action, coordinates = extract_thoughts_and_command(answer)
+        
+        # Affiche les informations extraites
+        print("THOUGHTS:", thoughts)
+        print("ACTION:", action)
+        print("COORDINATES:", coordinates)
+        if thoughts is None or action is None:
+            print("Erreur lors de l'extraction des informations")
+            return None
+        
+        # Update la valeur de l'entrée utilisateur par la commande extraite de la réponse du LLM
+        self.text_input.text = (action + " " + coordinates) if coordinates else action
         
         # Actions possibles
         actions = {
