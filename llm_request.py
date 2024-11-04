@@ -109,7 +109,7 @@ def make_request(prompt):
     
     # Send request 
     response = send_request()
-    print(response)
+    # print(response)
 
     # Check if the rate limit was reached
     while('error' in response and response['error']['code'] == 429): 
@@ -124,5 +124,5 @@ def make_request(prompt):
 
     # Get the answer from the response
     answer = response['choices'][0]['message']['content']
-    print(answer)
+    # print(answer)
     return answer

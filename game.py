@@ -238,7 +238,7 @@ class CookoBot(arcade.Window):
             self.inventory.append(existing_item) # Ajouter l'objet existant à l'inventaire
     
     def send_instruction(self, event=None):
-        print("Texte envoyé :", self.text_input.text)
+        print("Instruction de l'utilisateur:", self.text_input.text)
 
         # Demande au LLM de produire la commande
         prompt = make_prompt(self.text_input.text, self.items_on_map, self.player)
