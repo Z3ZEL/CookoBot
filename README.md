@@ -2,6 +2,8 @@
 
 Ce projet offre une approche immersive pour apprendre comment interagir avec des modèles avancés de type LLM à travers un mini jeu vidéo interactif.
 
+![CookoBot](./images/picture_readme.png)
+
 ## Fonctionnalités de CookoBot
 
 ### Le Jeu
