@@ -1,4 +1,5 @@
-# CookoBot – Développez des Agents LLM à travers un Mini Jeu Ludique
+# CookoBot
+### Développez des Agents LLM à travers un Mini Jeu Ludique
 
 Ce projet offre une approche immersive pour apprendre comment interagir avec des modèles avancés de type LLM à travers un mini jeu vidéo interactif.
 
