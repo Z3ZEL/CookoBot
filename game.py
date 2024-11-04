@@ -107,23 +107,22 @@ class CookoBot(arcade.Window):
             OBJ_SIZE, OBJ_SIZE, self.player_texture
         )
 
-        # # Afficher le compteur de pas
+        # Afficher le compteur de pas
         arcade.draw_texture_rectangle(POINT_BOX_X, POINT_BOX_Y, LOGO_SIZE, LOGO_SIZE, arcade.load_texture("images/walk.png"))
         arcade.draw_text(f"{self.step_count}", POINT_BOX_X+LOGO_SIZE-10, POINT_BOX_Y-LOGO_SIZE//2+10, arcade.color.MAUVE_TAUPE, 16, font_name="Comic Sans MS")
 
-        # # Afficher le compteur d'actions
+        # Afficher le compteur d'actions
         arcade.draw_texture_rectangle(POINT_BOX_X+MENU_WIDTH//2, POINT_BOX_Y, LOGO_SIZE, LOGO_SIZE, arcade.load_texture("images/star.png"))
         arcade.draw_text(f"{self.action_count}", POINT_BOX_X+MENU_WIDTH//2+LOGO_SIZE-10, POINT_BOX_Y-LOGO_SIZE//2+10, arcade.color.MAUVE_TAUPE, 16, font_name="Comic Sans MS")
 
-
-        # # Afficher l'inventaire au-dessus des boutons
+        # Afficher l'inventaire au-dessus des boutons
         arcade.draw_text(f"Inventaire ({len(self.inventory)}/{INVENTORY_SIZE})", MENU_X, INVENTORY_TITLE_Y, arcade.color.MAUVE_TAUPE, 16, font_name="Comic Sans MS")
         arcade.draw_rectangle_outline(MENU_X + MENU_WIDTH//2, INVENTORY_BOX_Y - INVENTORY_BOX_HEIGHT//2, MENU_WIDTH, INVENTORY_BOX_HEIGHT, arcade.color.MAUVE_TAUPE)
         for i, item in enumerate(self.inventory):
             arcade.draw_text(item, INVENTORY_TEXT_X, INVENTORY_TEXT_Y - INVENTORY_TEXT_HEIGHT*i, arcade.color.MAUVE_TAUPE, 16, font_name="Comic Sans MS")
             # arcade.draw_text(item, INVENTORY_TEXT_X, INVENTORY_TEXT_Y - INVENTORY_TEXT_HEIGHT*i, arcade.color.MAUVE_TAUPE, 14, font_name="Comic Sans MS")
 
-        # # Afficher le chat
+        # Afficher le chat
         arcade.draw_text("Instruction", MENU_X, INSTRUCTION_TITLE_Y, arcade.color.MAUVE_TAUPE, 16, font_name="Comic Sans MS")
         arcade.draw_rectangle_outline(MENU_X + MENU_WIDTH//2, INSTRUCTION_BOX_Y-INSTRUCTION_BOX_HEIGHT//2, MENU_WIDTH, INSTRUCTION_BOX_HEIGHT, arcade.color.MAUVE_TAUPE)
 
@@ -284,10 +283,8 @@ class CookoBot(arcade.Window):
             # Exécute l'action
             actions[action]()
 
-        # Efface le texte après l'envoi
-        self.text_input.text = "" 
-
-
+        self.text_input.clear()
+        self.text_input.trigger_render()
 
 if __name__ == "__main__":
     window = CookoBot()
