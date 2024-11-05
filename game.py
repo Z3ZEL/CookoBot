@@ -11,6 +11,7 @@ class CookoBot(arcade.Window):
     def __init__(self):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, "CookoBot")
         self.player = None
+        self.action_queue : list[ tuple[any, any]] = []
         self.inventory = []
         self.objects = ['Banane', 'Pomme', 'Poire']
         self.items_on_map = {}
@@ -129,6 +130,17 @@ class CookoBot(arcade.Window):
         # Afficher les boutons
         self.manager.draw()
 
+    def next_action(self):
+        if len(self.action_queue) == 0:
+            print("Action terminé")
+            return
+        action, value  = self.action_queue.pop(0)
+        if value:
+            print(f"Action: {action.__name__}({value})")
+            action(value)
+        else:
+            action()
+
     def on_mouse_press(self, x, y, button, modifiers):
         # Convertir les coordonnées de la souris en coordonnées de la grille
         grid_x = (x - PADDING) // TILE_SIZE
@@ -195,6 +207,14 @@ class CookoBot(arcade.Window):
             self.on_draw()  # Redessine l'écran pour montrer le mouvement
         else:
             arcade.unschedule(self.move_along_path)  # Arrête la planification lorsque le déplacement est terminé
+            self.next_action()
+    
+    def action_move_to(self, coord):
+        self.path = self.a_star(self.player['x'], self.player['y'], coord[0], coord[1])
+        if self.path:
+            self.path_index = 0
+        self.action_move()
+
     
     def action_move(self, event=None):
         # Execute le mouvement
@@ -215,6 +235,7 @@ class CookoBot(arcade.Window):
                 del self.items_on_map[current_pos]  # Retirer l'objet de la carte
             self.inventory.append(item)  # Ajouter l'objet à l'inventaire
             self.action_count += 1  # Incrémente le compteur d'actions
+        self.next_action()
 
     def action_drop(self, event=None):
         """Dépose un objet sur la carte."""
@@ -235,6 +256,7 @@ class CookoBot(arcade.Window):
             item_to_drop = self.inventory.popleft() # Retirer le dernier objet de l'inventaire
             self.items_on_map[current_pos] = item_to_drop # Le déposer sur la carte
             self.inventory.append(existing_item) # Ajouter l'objet existant à l'inventaire
+        self.next_action()
     
     def send_instruction(self, event=None):
         print("Instruction de l'utilisateur:", self.text_input.text)
@@ -242,21 +264,19 @@ class CookoBot(arcade.Window):
         ## --- Uncomment this part to use LLM --- ##
 
         # Demande au LLM de produire la commande
-        # prompt = make_prompt(self.text_input.text, self.items_on_map, self.player)
-        # answer = make_request(prompt)
-        # thoughts, action = extract_thoughts_and_command(answer)
+        prompt = make_prompt(self.text_input.text, self.items_on_map, self.player, self.inventory)
+        answer = make_request(prompt)
+        thoughts, actions_output = extract_thoughts_and_command(answer)
         
         # Affiche les informations extraites
-        # print("THOUGHTS:", thoughts)
-        # print("ACTION:", action)
+        print("THOUGHTS:", thoughts)
+        print("ACTIONS:", actions_output)
 
         # Vérifie si les informations ont été extraites avec succès
-        # if thoughts is None or action is None:
-        #     print("Erreur lors de l'extraction des informations")
-        #     return None
-        
-        # Update la valeur de l'entrée utilisateur par la commande extraite de la réponse du LLM
-        #self.text_input.text = action
+        if thoughts is None or actions_output is None:
+            print("Erreur lors de l'extraction des informations")
+            return None
+    
 
         ## --- Uncomment this part to use LLM --- ##
         
@@ -264,32 +284,36 @@ class CookoBot(arcade.Window):
         actions = {
             'PICK': self.action_pick,
             'DROP': self.action_drop,
-            'MOVE': self.action_move,
+            'MOVE': self.action_move_to,
         }
         # Extrait l'action de l'entrée utilisateur
-        text_split = self.text_input.text.split(" ")
-        if len(text_split) == 2:
-            action, coordinates = text_split
-        else:
-            action, coordinates = text_split[0], None
+        for action in actions_output:
+                
+            # Update la valeur de l'entrée utilisateur par la commande extraite de la réponse du LLM
+            self.text_input.text = action
+            text_split = self.text_input.text.split(" ")
+            if len(text_split) == 2:
+                action, coordinates = text_split
+            else:
+                action, coordinates = text_split[0], None
 
-        # Exécute l'action correspondante
-        if action in actions:
-            if action == 'MOVE' and coordinates:
-                # Calculer le chemin vers les coordonnées spécifiées
-                x, y = coordinates.split(",")
-                self.path = self.a_star(self.player['x'], self.player['y'], int(x), int(y))
-                if self.path:
-                    self.path_index = 0
+            # Exécute l'action correspondante
+            if action in actions:
+                if action == 'MOVE' and coordinates:
+                    # Calculer le chemin vers les coordonnées spécifiées
+                    x, y = coordinates.split(",")
+                    self.action_queue.append((actions[action], (int(x),int(y))))
                 else:
-                    print("Chemin non trouvé")
-                    return None
+                    # Append action to the queue
+                    self.action_queue.append((actions[action], None))
 
-            # Exécute l'action
-            actions[action]()
+            self.text_input.clear()
+            self.text_input.trigger_render()
+            
 
-        self.text_input.clear()
-        self.text_input.trigger_render()
+        self.next_action()
+
+            
 
 if __name__ == "__main__":
     window = CookoBot()

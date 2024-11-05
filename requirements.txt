@@ -31,8 +31,7 @@ pycparser==2.22
 pyglet==2.0.dev23
 Pygments==2.18.0
 pymunk==6.4.0
-pyobjc-core==10.3.1
-pyobjc-framework-Cocoa==10.3.1
+
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
 pytiled-parser==2.2.0
