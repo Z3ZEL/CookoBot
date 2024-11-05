@@ -239,21 +239,26 @@ class CookoBot(arcade.Window):
     def send_instruction(self, event=None):
         print("Instruction de l'utilisateur:", self.text_input.text)
 
+        ## --- Uncomment this part to use LLM --- ##
+
         # Demande au LLM de produire la commande
-        prompt = make_prompt(self.text_input.text, self.items_on_map, self.player)
-        answer = make_request(prompt)
-        thoughts, action, coordinates = extract_thoughts_and_command(answer)
+        # prompt = make_prompt(self.text_input.text, self.items_on_map, self.player)
+        # answer = make_request(prompt)
+        # thoughts, action = extract_thoughts_and_command(answer)
         
         # Affiche les informations extraites
-        print("THOUGHTS:", thoughts)
-        print("ACTION:", action)
-        print("COORDINATES:", coordinates)
-        if thoughts is None or action is None:
-            print("Erreur lors de l'extraction des informations")
-            return None
+        # print("THOUGHTS:", thoughts)
+        # print("ACTION:", action)
+
+        # Vérifie si les informations ont été extraites avec succès
+        # if thoughts is None or action is None:
+        #     print("Erreur lors de l'extraction des informations")
+        #     return None
         
         # Update la valeur de l'entrée utilisateur par la commande extraite de la réponse du LLM
-        self.text_input.text = (action + " " + coordinates) if coordinates else action
+        #self.text_input.text = action
+
+        ## --- Uncomment this part to use LLM --- ##
         
         # Actions possibles
         actions = {
